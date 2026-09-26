@@ -1,16 +1,11 @@
-FROM node:20-alpine AS builder
+FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
+COPY pom.xml .
+COPY src ./src
+RUN mvn clean package -DskipTests
 
-FROM node:20-alpine AS runner
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-ENV NODE_ENV=production
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-EXPOSE 3000
-ENV PORT=3000
-CMD ["node", "server.js"]
+COPY --from=build /app/target/backend-0.0.1-SNAPSHOT.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]
